@@ -1,34 +1,3 @@
-# ui <- fluidPage(
-#   titlePanel("តារាងសរុបការចាប់ត្រីប្រចាំឆ្នាំ"),
-# 
-#   actionButton("updateFileButton", "📥 ទាញយករបាយការណ៍ Excel (រួមសមុទ្រ + អប្បរាគមន៍)"),
-#   br(), br(),
-#   tabsetPanel(
-#     tabPanel("🐟 តារាងត្រីសមុទ្រ",
-#              h4("សរុបត្រីសមុទ្រប្រចាំឆ្នាំ"),
-#              DT::dataTableOutput("catch_table"),
-#              h4("ស្រះ បែ ស៊ង"),
-#              DT::dataTableOutput("aquaculture_pond_table")),
-# 
-#     tabPanel("🦐 ផលវារីវប្បកម្ម",
-#              h4("សរុបទិន្នន័យអប្បរាគមន៍ប្រចាំឆ្នាំ"),
-#              DT::dataTableOutput("aquaculture_table"),
-#              h4("ផលនេសាទសមុទ្រ"),
-#              DT::dataTableOutput("fishing_products_table"),
-#              h4("ផលក្នុងវាលស្រែ"),
-#              DT::dataTableOutput("fishing_products_rice_field_table"),
-#              h4("ផលក្នុងដែននេសាទ"),
-#              DT::dataTableOutput("fishing_products_fishery_domain_table"),
-#              h4("ផលឧបករណ៍ដាយ"),
-#              DT::dataTableOutput("fishing_products_dai_table")),
-# 
-#     tabPanel("🐟 បទល្មើស",
-#              h4("បទល្មើស"),
-#              DT::dataTableOutput("law_enforcement_table")),
-#   )
-# )
-
-
 library(shiny)
 library(shinyjs)
 library(DT) # Assuming you use DT for tables
