@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 lubridate
 janitor
 tidyr
@@ -11,3 +12,18 @@ datasets
 utils
 methods
 base
+=======
+lubridate
+janitor
+tidyr
+dplyr
+jsonlite
+httr
+stats
+graphics
+grDevices
+datasets
+utils
+methods
+base
+>>>>>>> 88c032a92a295d81bb6d74a5aeee7a3fa7c8969d
