@@ -203,11 +203,12 @@ ui <- fluidPage(
   div(id = "sidebarPanel", class = "sidebar",
       actionButton("closeSidebarBtn", "", icon = icon("times")),
       h3("Filters"),
-      # selectInput("year", "Select Area", choices = area_choices), # Replace with your year_choices
+      selectInput("Province_Group", "Select Province Group", choices = province_group_choices), 
       selectInput("year", "Select Year", choices = year_choices), # Replace with your year_choices
       selectInput("quarter", "Select Quarter", choices = quarter_choices),
       selectInput("month", "Select Month", choices = month_choices), 
       selectInput("province", "Select Province", choices = province_choices),
+      selectInput("area_en", "Select Area", choices = area_choices), 
       
       checkboxInput("show_all", "Show All Rows", value = FALSE),
 

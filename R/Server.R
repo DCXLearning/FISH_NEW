@@ -9,67 +9,64 @@ server <- function(input, output, session) {
     # Step 1: Prepare data
     df <- nat_raw %>%
       mutate(
-        date     = suppressWarnings(lubridate::as_date(date)),
-        year     = suppressWarnings(lubridate::year(date)),
-        month    = suppressWarnings(lubridate::month(date)),
-        quarter  = Quarter,                   # "Q1".."Q4"
-        week     = as.character(week),        # "Week1".."Week5"
-        catch    = suppressWarnings(as.integer(round(catch)))
+        date    = suppressWarnings(lubridate::as_date(date)),
+        year    = suppressWarnings(lubridate::year(date)),
+        month   = suppressWarnings(lubridate::month(date)),
+        quarter = Quarter,                   # "Q1".."Q4"
+        week    = as.character(week),        # "Week1".."Week5"
+        catch   = suppressWarnings(as.integer(round(catch)))
       ) %>%
       filter(
         !is.na(date),
         !is.na(year),
         !is.na(catch),
         catch > 0,
-        area_code_nat == "2",                
-        province_kh != "កំពង់ធំ"             
+        area_code_nat == "2",                # keep if you truly want marine area only
+        province_kh != "កំពង់ធំ"
       )
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df <- df %>% filter(area_nat == input$area_nat)
-    # }
     
-    # if (!is.null(input$area_code_nat) && input$area_code_nat != "All") {
-    #   df <- df %>% filter(area_code_nat == input$area_code_nat)
-    # }
+    # --- Province Group filter (All / Marine / Inland) ---
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
     
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
     
-    # Step 2: Apply filters (all optional)
+    # Other optional filters
     if (!is.null(input$province) && input$province != "All") {
-      df <- df %>% filter(province_kh == input$province)
+      df <- df %>% dplyr::filter(province_kh == input$province)
     }
-    
     if (!is.null(input$year) && input$year != "All") {
-      df <- df %>% filter(year == suppressWarnings(as.integer(input$year)))
+      df <- df %>% dplyr::filter(year == suppressWarnings(as.integer(input$year)))
     }
-    
     if (!is.null(input$month) && input$month != "All") {
-      df <- df %>% filter(month == suppressWarnings(as.integer(input$month)))
+      df <- df %>% dplyr::filter(month == suppressWarnings(as.integer(input$month)))
     }
-    
     if (!is.null(input$quarter) && input$quarter != "All") {
-      df <- df %>% filter(quarter == input$quarter)
+      df <- df %>% dplyr::filter(quarter == input$quarter)
     }
-    
     if (!is.null(input$week) && input$week != "All") {
-      df <- df %>% filter(week == input$week)
+      df <- df %>% dplyr::filter(week == input$week)
     }
     
     # Step 3: Summarise catch by fish × province
     summary_table <- df %>%
-      group_by(fish_name_kh, province_kh) %>%
-      summarise(catch = sum(catch, na.rm = TRUE), .groups = "drop") %>%
+      dplyr::group_by(fish_name_kh, province_kh) %>%
+      dplyr::summarise(catch = sum(catch, na.rm = TRUE), .groups = "drop") %>%
       tidyr::pivot_wider(
         names_from  = province_kh,
         values_from = catch,
         values_fill = 0
       )
     
-    # Step 4: Add total column and keep top 51
+    # Step 4: Total + Top 51
     catch_cols <- setdiff(names(summary_table), "fish_name_kh")
     final_table <- summary_table %>%
-      mutate(`សរុប` = rowSums(dplyr::select(., dplyr::all_of(catch_cols)), na.rm = TRUE)) %>%
-      arrange(desc(`សរុប`)) %>%
-      slice_head(n = 51)
+      dplyr::mutate(`សរុប` = rowSums(dplyr::select(., dplyr::all_of(catch_cols)), na.rm = TRUE)) %>%
+      dplyr::arrange(dplyr::desc(`សរុប`)) %>%
+      dplyr::slice_head(n = 51)
     
     # Step 5: Handle empty result
     if (nrow(final_table) == 0) {
@@ -80,9 +77,10 @@ server <- function(input, output, session) {
       ))
     }
     
-    # Step 6: Return final data
+    # Step 6: Return
     as.data.frame(final_table, stringsAsFactors = FALSE, check.names = FALSE)
   })
+  
   
   ##############################################################################
   
@@ -114,6 +112,13 @@ server <- function(input, output, session) {
       df <- df %>% filter(province_kh == input$province)
     }
     
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
+    
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
     # 3) Year filter      ("All" keeps all)
     if (!is.null(input$year) && input$year != "All") {
       df <- df %>% filter(year == suppressWarnings(as.numeric(input$year)))
@@ -193,6 +198,9 @@ server <- function(input, output, session) {
         province_kh != "កំពង់ធំ"
       )
     
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
     # Step 3: Filter by year and determine target_years
     if (!is.null(input$year) && input$year != "All") {
       N <- as.numeric(input$year)
@@ -202,9 +210,9 @@ server <- function(input, output, session) {
       target_years <- sort(unique(df_marine$year))
     }
     
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df <- df %>% filter(area_nat == input$area_nat)
-    # }
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
     
     # Step 4: Additional filters
     if (!is.null(input$province) && input$province != "All") {
@@ -305,6 +313,13 @@ server <- function(input, output, session) {
         nat_fishcatch_area_nat == "1",
         nat_fishcatch_type_fishing == "3"
       )
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_rice <- df_rice %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
+    
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_rice <- df_rice %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
     
     # Step 3: Filter by year and define target_years
     if (!is.null(input$year) && input$year != "All") {
@@ -402,6 +417,14 @@ server <- function(input, output, session) {
         nat_fishcatch_type_fishing == "1",
         province_kh %in% province_order
       )
+    
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
+    
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
     
     # Step 3: Year filter
     if (!is.null(input$year) && input$year != "All") {
@@ -518,6 +541,14 @@ server <- function(input, output, session) {
     #   df_marine <- df_marine %>% filter(area_nat == input$area_nat)
     # }
     
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
+    
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
+    
     # ✅ Step 3: Year filter
     if (!is.null(input$year) && input$year != "All") {
       N <- as.numeric(input$year)
@@ -631,9 +662,14 @@ server <- function(input, output, session) {
       base_data <- base_data %>% filter(year %in% target_years)
     }
     
-    if (!is.null(input$area_num) && input$area_num != "All") {
-      df_marine <- df_marine %>% filter(area_num == input$area_num)
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
     }
+    
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
+    
     # ✅ Province filter
     if (!is.null(input$province) && input$province != "All") {
       base_data <- base_data %>% filter(province_kh == input$province)
@@ -732,13 +768,17 @@ server <- function(input, output, session) {
       base_data <- base_data %>% filter(year %in% c(N - 1, N))
     }
     
-    if (!is.null(input$area_num) && input$area_num != "All") {
-      df_marine <- df_marine %>% filter(area_num == input$area_num)
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
+    
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(area_en) == input$area_en)
     }
     
     # ✅ Province filter
     if (!is.null(input$province) && input$province != "All") {
-      df_marine <- df_marine %>% filter(province_kh == input$province)
+      base_data <- base_data %>% filter(province_kh == input$province)
     }
     
     # ✅ Quarter filter
@@ -933,6 +973,10 @@ server <- function(input, output, session) {
       df_codes <- df_codes %>% filter(year %in% c(N - 1, N))
     }
     
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_codes <- df_codes %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    }
+    
     # ✅ Province filter
     if (!is.null(input$province) && input$province != "All") {
       df_codes <- df_codes %>% filter(province_kh == input$province)
@@ -995,116 +1039,7 @@ server <- function(input, output, session) {
   })
   
   
-  ##############################################################################
-  # 
-  # aquaculture_pond <- reactive({
-  #   # Khmer province order
-  #   province_order <- c(
-  #     "បន្ទាយមានជ័យ","បាត់ដំបង","កំពង់ចាម","កំពង់ឆ្នាំង","កំពង់ស្ពឺ",
-  #     "កំពង់ធំ","កំពត","កណ្ដាល","កោះកុង","ក្រចេះ",
-  #     "មណ្ឌលគិរី","ភ្នំពេញ","ព្រះវិហារ","ព្រៃវែង","ពោធិ៍សាត់",
-  #     "រតនគិរី","សៀមរាប","ព្រះសីហនុ","ស្ទឹងត្រែង","ស្វាយរៀង",
-  #     "តាកែវ","ឧត្ដរមានជ័យ","កែប","ប៉ៃលិន","ត្បូងឃ្មុំ"
-  #   )
-  #   
-  #   # detect the aquaculture type column robustly
-  #   type_candidates <- c("aqu_fishcatch_aqu_type","aqu_type","aquaculture_type","type","aqu_type_raw")
-  #   type_col <- intersect(type_candidates, names(aqu_raw))[1]
-  #   
-  #   # if no usable type column, return zeros
-  #   if (is.na(type_col) || length(type_col) == 0) {
-  #     zero_tbl <- tibble(
-  #       province_kh     = province_order,
-  #       `plastic soung` = 0L, ponds = 0L, batches = 0L
-  #     )
-  #     return(as.data.frame(zero_tbl, stringsAsFactors = FALSE, check.names = FALSE))
-  #   }
-  #   
-  #   # normalize multi-select -> kept categories
-  #   normalize_types <- function(x) {
-  #     if (is.null(x) || length(x) == 0) return(character(0))
-  #     txt <- paste(as.character(x), collapse = " ")
-  #     if (!nzchar(txt)) return(character(0))
-  #     txt  <- tolower(txt)
-  #     txt  <- gsub("[_\\-]+", " ", txt)
-  #     txt  <- gsub("\\s+", " ", txt)
-  #     toks <- unique(strsplit(trimws(txt), " ", fixed = TRUE)[[1]])
-  #     
-  #     kept <- character(0)
-  #     if (any(toks %in% c("pond","ponds")))    kept <- c(kept, "ponds")
-  #     if (any(toks %in% c("batch","batches"))) kept <- c(kept, "batches")
-  #     if (any(toks %in% c("plastic","soung","plastic soung"))) kept <- c(kept, "plastic soung")
-  #     
-  #     unique(kept)
-  #   }
-  #   
-  #   df <- aqu_raw %>%
-  #     mutate(
-  #       province    = as.character(province),
-  #       province_kh = dplyr::coalesce(province_kh, province),
-  #       year = if ("year" %in% names(.)) {
-  #         suppressWarnings(as.integer(.data$year))
-  #       } else if ("date" %in% names(.)) {
-  #         suppressWarnings(lubridate::year(date))
-  #       } else {
-  #         NA_integer_
-  #       },
-  #       type_text = sapply(.data[[type_col]], function(v) paste(as.character(v), collapse = " "))
-  #     ) %>%
-  #     mutate(type_list = lapply(type_text, normalize_types)) %>%
-  #     tidyr::unnest_longer(type_list, values_to = "type") %>%
-  #     filter(!is.na(type)) %>%
-  #     mutate(count = 1L)
-  #   
-  #   # ---- Dynamic filtering ----
-  #   if (input$year != "All") {
-  #     df <- df %>% filter(year == as.integer(input$year))
-  #   }
-  #   
-  #   if (input$province != "All") {
-  #     df <- df %>% filter(province_kh == input$province)
-  #   } else {
-  #     df <- df %>% filter(province_kh %in% province_order)  # keep only known provinces
-  #   }
-  #   # ---------------------------
-  #   
-  #   # Province x Type counts
-  #   summary_table <- df %>%
-  #     group_by(province_kh, type) %>%
-  #     summarise(total = sum(count), .groups = "drop") %>%
-  #     tidyr::pivot_wider(
-  #       names_from  = type,
-  #       values_from = total,
-  #       values_fill = 0L
-  #     )
-  #   
-  #   # If pivot produced no province column (no rows), start from empty
-  #   if (!"province_kh" %in% names(summary_table)) {
-  #     summary_table <- tibble(province_kh = character())
-  #   }
-  #   
-  #   # Ensure all 3 type columns exist
-  #   for (nm in c("plastic soung","ponds","batches")) {
-  #     if (!nm %in% names(summary_table)) summary_table[[nm]] <- 0L
-  #   }
-  #   
-  #   # Add missing provinces as zero rows (so selection "All" still shows all provinces)
-  #   if (input$province == "All") {
-  #     missing_provs <- setdiff(province_order, summary_table$province_kh)
-  #     if (length(missing_provs) > 0) {
-  #       to_add <- tibble(province_kh = missing_provs,
-  #                        `plastic soung` = 0L, ponds = 0L, batches = 0L)
-  #       summary_table <- dplyr::bind_rows(summary_table, to_add)
-  #     }
-  #   }
-  #   
-  #   # Order rows & columns
-  #   summary_table %>%
-  #     arrange(match(province_kh, province_order)) %>%
-  #     select(province_kh, `plastic soung`, ponds, batches) %>%
-  #     as.data.frame(stringsAsFactors = FALSE, check.names = FALSE)
-  # })
-  # 
+#################################################################################
   
   aquaculture_pond <- reactive({
     # Khmer province order
@@ -1181,11 +1116,19 @@ server <- function(input, output, session) {
       df <- df %>% filter(year %in% c(N - 1, N))
     }
     
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
+    }
+    
     # Province
     if (!is.null(input$province) && input$province != "All") {
       df <- df %>% filter(province_kh == input$province)
     } else {
       df <- df %>% filter(province_kh %in% province_order)
+    }
+    
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
     }
     
     # Quarter

@@ -78,18 +78,24 @@ reports_raw <- main_df %>%
   mutate(date = unlist(date)) %>%
   filter(!is.na(date)) %>%
   mutate(
-    date = as.Date(date, format = "%Y-%m-%d"),
-    Year = year(date),
-    Month = month(date),
-    Quarter = case_when(
-      Month %in% 1:3 ~ 'Q1',
-      Month %in% 4:6 ~ 'Q2',
-      Month %in% 7:9 ~ 'Q3',
+    date      = as.Date(date, format = "%Y-%m-%d"),
+    province  = as.character(province),                 # <-- ensure string codes
+    Year      = year(date),
+    Month     = month(date),
+    Quarter   = case_when(
+      Month %in% 1:3   ~ 'Q1',
+      Month %in% 4:6   ~ 'Q2',
+      Month %in% 7:9   ~ 'Q3',
       Month %in% 10:12 ~ 'Q4'
     ),
-    week = paste0("Week", ceiling(day(date) / 7)) ,
+    week      = paste0("Week", ceiling(day(date) / 7)),
     MonthAbbr = month(date, label = TRUE, abbr = TRUE),
-    province = as.character(province)
+    
+    # Two groups by province code
+    Province_Group = factor(
+      dplyr::if_else(province %in% c("9","18","23","7"), "Marine", "Inland"),
+      levels = c("Marine","Inland")
+    )
   ) %>%
   left_join(province_lookup, by = c("province" = "province_code")) %>%
   mutate(
@@ -101,112 +107,135 @@ reports_raw <- main_df %>%
 nat_raw <- nat_df %>%
   mutate(date = unlist(date)) %>%
   mutate(
-    date = as.Date(date),
-    Year = year(date),
-    Month = month(date),
-    Quarter = case_when(
-      Month %in% 1:3 ~ 'Q1',
-      Month %in% 4:6 ~ 'Q2',
-      Month %in% 7:9 ~ 'Q3',
+    date      = as.Date(date),
+    province  = as.character(province),  # ensure codes are character first
+    Year      = year(date),
+    Month     = month(date),
+    Quarter   = case_when(
+      Month %in% 1:3   ~ 'Q1',
+      Month %in% 4:6   ~ 'Q2',
+      Month %in% 7:9   ~ 'Q3',
       Month %in% 10:12 ~ 'Q4'
     ),
-    week = paste0("Week", ceiling(day(date) / 7)) ,
-    catch = as.numeric(nat_fishcatch_nat_catch),
-    province = as.character(province),
-    area_code_nat = as.character(nat_fishcatch_area_nat),
-    natfishcatch_typefishing = as.character(nat_fishcatch_type_fishing),
-    natfishcatch_nat_fishtype = as.character(nat_fishcatch_nat_fishtype)
+    week                      = paste0("Week", ceiling(day(date) / 7)),
+    catch                     = as.numeric(nat_fishcatch_nat_catch),
+    area_code_nat             = as.character(nat_fishcatch_area_nat),
+    natfishcatch_typefishing  = as.character(nat_fishcatch_type_fishing),
+    natfishcatch_nat_fishtype = as.character(nat_fishcatch_nat_fishtype),
+    
+    # --- NEW: two groups by province code ---
+    Province_Group = factor(
+      dplyr::if_else(gsub("^0+", "", province) %in% c("7","9","18","23"), "Marine", "Inland"),
+      levels = c("Marine","Inland")
+    )
   ) %>%
-  left_join(province_lookup, by = c("province" = "province_code")) %>%
-  left_join(fish_label_lookup, by = c("natfishcatch_nat_fishtype" = "fish_code")) %>%
-  left_join(area_lookup, by = c("area_code_nat" = "area_code")) %>%
+  left_join(province_lookup,      by = c("province" = "province_code")) %>%
+  left_join(fish_label_lookup,    by = c("natfishcatch_nat_fishtype" = "fish_code")) %>%
+  left_join(area_lookup,          by = c("area_code_nat" = "area_code")) %>%
   mutate(
-    province_kh = coalesce(province_kh, province),
-    province_en = coalesce(province_en, province),
+    province_kh  = coalesce(province_kh, province),
+    province_en  = coalesce(province_en, province),
     fish_name_kh = coalesce(fish_name_kh, natfishcatch_nat_fishtype),
     fish_name_en = coalesce(fish_name_en, natfishcatch_nat_fishtype),
-    area_en = coalesce(area_en, area_code_nat)
+    area_en      = coalesce(area_en, area_code_nat)
   )
+
 
 # FIX: Added unlist() to handle the list date column
 aqu_raw <- aqu_df %>%
   mutate(date = unlist(date)) %>%
   mutate(
-    date = as.Date(date),
-    Year = year(date),
-    Month = month(date),
-    Quarter = case_when(
-      Month %in% 1:3 ~ 'Q1',
-      Month %in% 4:6 ~ 'Q2',
-      Month %in% 7:9 ~ 'Q3',
+    date      = as.Date(date),
+    province  = as.character(province),        # make sure codes are character first
+    Year      = year(date),
+    Month     = month(date),
+    Quarter   = case_when(
+      Month %in% 1:3   ~ 'Q1',
+      Month %in% 4:6   ~ 'Q2',
+      Month %in% 7:9   ~ 'Q3',
       Month %in% 10:12 ~ 'Q4'
     ),
-    week = paste0("Week", ceiling(day(date) / 7)) ,
-    catch = as.numeric(aqu_fishcatch_aqu_catch),
-    province = as.character(province),
-    area_code_aqu = as.character(aqu_fishcatch_area_aqu),
-    aqu_type = as.character(aqu_fishcatch_aqu_type),
+    # --- Two groups by province code (strip any leading zeros) ---
+    Province_Group = factor(
+      dplyr::if_else(gsub("^0+", "", province) %in% c("7","9","18","23"), "Marine", "Inland"),
+      levels = c("Marine","Inland")
+    ),
+    week         = paste0("Week", ceiling(day(date) / 7)),
+    catch        = as.numeric(aqu_fishcatch_aqu_catch),
+    area_code_aqu= as.character(aqu_fishcatch_area_aqu),
+    aqu_type     = as.character(aqu_fishcatch_aqu_type),
     aqu_fishtype = as.character(aqu_fishcatch_aqu_fishtype)
   ) %>%
   left_join(province_lookup, by = c("province" = "province_code")) %>%
   left_join(fish_label_lookup, by = c("aqu_fishcatch_aqu_fishtype" = "fish_code")) %>%
   left_join(area_lookup, by = c("area_code_aqu" = "area_code")) %>%
   mutate(
-    province_kh = coalesce(province_kh, province),
-    province_en = coalesce(province_en, province),
+    province_kh  = coalesce(province_kh, province),
+    province_en  = coalesce(province_en, province),
     fish_name_kh = coalesce(fish_name_kh, aqu_fishtype),
     fish_name_en = coalesce(fish_name_en, aqu_fishtype),
-    area_en = coalesce(area_en, area_code_aqu)
-    
+    area_en      = coalesce(area_en, area_code_aqu)
   )
+
 
 # FIX: Added unlist() to handle the list date column 
 processing_raw <- processing_df %>%
   mutate(date = unlist(date)) %>%
   filter(!is.na(processing_amountprocessing)) %>%
   mutate(
-    date = as.Date(date),
-    Year = year(date),
-    Month = month(date),
-    Quarter = case_when(
-      Month %in% 1:3 ~ 'Q1',
-      Month %in% 4:6 ~ 'Q2',
-      Month %in% 7:9 ~ 'Q3',
+    date      = as.Date(date),
+    province  = as.character(province),  # ensure codes are character first
+    Year      = year(date),
+    Month     = month(date),
+    Quarter   = case_when(
+      Month %in% 1:3   ~ 'Q1',
+      Month %in% 4:6   ~ 'Q2',
+      Month %in% 7:9   ~ 'Q3',
       Month %in% 10:12 ~ 'Q4'
     ),
-    week = paste0("Week", ceiling(day(date) / 7)) ,
-    processing_amount = as.numeric(processing_amountprocessing),
-    processing_typeprocessing = as.character(processing_typeprocessing),
-    province = as.character(province),
-    area_code_pro = as.character(processing_area_pro)
+    # --- NEW: two groups by province code (strip any leading zeros) ---
+    Province_Group = factor(
+      dplyr::if_else(gsub("^0+", "", province) %in% c("7","9","18","23"), "Marine", "Inland"),
+      levels = c("Marine","Inland")
+    ),
+    week                     = paste0("Week", ceiling(day(date) / 7)),
+    processing_amount        = as.numeric(processing_amountprocessing),
+    processing_typeprocessing= as.character(processing_typeprocessing),
+    area_code_pro            = as.character(processing_area_pro)
   ) %>%
-  left_join(province_lookup, by = c("province" = "province_code")) %>%
-  left_join(area_lookup, by = c("area_code_pro" = "area_code")) %>%
-  left_join(processed_fish_lookup, by = c("processing_typeprocessing" = "proc_code")) %>%
+  left_join(province_lookup,           by = c("province" = "province_code")) %>%
+  left_join(area_lookup,               by = c("area_code_pro" = "area_code")) %>%
+  left_join(processed_fish_lookup,     by = c("processing_typeprocessing" = "proc_code")) %>%
   mutate(
-    province_kh = coalesce(province_kh, province),
-    province_en = coalesce(province_en, province),
+    province_kh  = coalesce(province_kh, province),
+    province_en  = coalesce(province_en, province),
     proc_name_kh = coalesce(proc_name_kh, processing_typeprocessing),
     proc_name_en = coalesce(proc_name_en, processing_typeprocessing),
-    area_en = coalesce(area_en, area_code_pro)
+    area_en      = coalesce(area_en, area_code_pro)
   )
+
 
 # FIX: Added unlist() to handle the list date column
 patrol_raw <- patrol_df %>%
   mutate(date = unlist(date)) %>%
   mutate(
-    date = as.Date(date),
-    Year = year(date),
-    Month = month(date),
-    Quarter = case_when(
-      Month %in% 1:3 ~ 'Q1',
-      Month %in% 4:6 ~ 'Q2',
-      Month %in% 7:9 ~ 'Q3',
+    date      = as.Date(date),
+    province  = as.character(province),  # ensure codes are character first
+    Year      = year(date),
+    Month     = month(date),
+    Quarter   = case_when(
+      Month %in% 1:3   ~ 'Q1',
+      Month %in% 4:6   ~ 'Q2',
+      Month %in% 7:9   ~ 'Q3',
       Month %in% 10:12 ~ 'Q4'
     ),
-    week = paste0("Week", ceiling(day(date) / 7)) ,
-    patrol_amountcrime = as.numeric(patrol_amount),
-    province = as.character(province)
+    # --- Two groups by province code (strip possible leading zeros) ---
+    Province_Group = factor(
+      dplyr::if_else(gsub("^0+", "", province) %in% c("7","9","18","23"), "Marine", "Inland"),
+      levels = c("Marine","Inland")
+    ),
+    week               = paste0("Week", ceiling(lubridate::day(date) / 7)),
+    patrol_amountcrime = as.numeric(patrol_amount)
   ) %>%
   left_join(province_lookup, by = c("province" = "province_code")) %>%
   mutate(
@@ -214,22 +243,23 @@ patrol_raw <- patrol_df %>%
     province_en = coalesce(province_en, province)
   )
 
+
 # --- COMBINED Dataset for Summary ---
-all_fish_data_raw <- bind_rows(
-  nat_raw %>%
-    select(Year, Month, Quarter, catch, province_en, area_en, area_code_nat) %>%
-    rename(province = province_en) %>%
-    mutate(area_group = case_when(
-      area_code_nat == "1" ~ "Freshwater Capture",
-      area_code_nat == "2" ~ "Marine Capture",
-      TRUE ~ "Other Capture"
-    )),
-  aqu_raw %>%
-    select(Year, Month, Quarter, catch, province_kh) %>%
-    rename(province = province_kh
-           ) %>%
-    mutate(area_group = "Aquaculture", area_en = NA_character_, area_code_nat = NA_character_)
-)
+# all_fish_data_raw <- bind_rows(
+#   nat_raw %>%
+#     select(Year, Month, Quarter, catch, province_en, area_en, area_code_nat) %>%
+#     rename(province = province_en) %>%
+#     mutate(area_group = case_when(
+#       area_code_nat == "1" ~ "Freshwater Capture",
+#       area_code_nat == "2" ~ "Marine Capture",
+#       TRUE ~ "Other Capture"
+#     )),
+#   aqu_raw %>%
+#     select(Year, Month, Quarter, catch, province_kh) %>%
+#     rename(province = province_kh
+#            ) %>%
+#     mutate(area_group = "Aquaculture", area_en = NA_character_, area_code_nat = NA_character_)
+# )
 
 
 # --- Prepare `selectInput` Choices ---
@@ -265,6 +295,17 @@ quarter_choices <- c("All" = "All", as.list(all_quarter))
 all_month <- sort(unique(c(nat_raw$Month, aqu_raw$Month, processing_raw$Month, patrol_raw$Month)))
 all_month <- all_month[!is.na(all_month)]
 
+# Build choices for the Province_Group selector
+groups <- unique(as.character(nat_raw$Province_Group, aqu_raw$Province_Group,processing_raw$Province_Group,patrol_raw$Province_Group))
+groups <- groups[!is.na(groups)]
+
+# Enforce canonical order (Marine first, then Inland)
+order <- c("Marine", "Inland")
+groups <- order[order %in% groups]
+
+province_group_choices <- c("All" = "All", setNames(groups, groups))
+
+
 # Add "All" at the beginning
 month_choices <- c(
   "All" = "All",
@@ -288,45 +329,9 @@ province_choices <- setNames(all_provinces$province_kh, all_provinces$province_e
 province_choices <- c("All" = "All", province_choices)
 
 # Areas & processing sources
-all_areas <- sort(unique(c(nat_raw$area_en, processing_raw$area_en)))
+all_areas <- sort(unique(c(nat_raw$area_en, processing_raw$area_en, aqu_raw$area_en)))
 area_choices <- c("All" = "All", as.list(all_areas))
 
 processing_sources <- sort(unique(processing_raw$processing_source))
 source_choices <- c("All" = "All", as.list(processing_sources))
 
-
-
-
-
-# # Prepare `selectInput` Choices
-# all_years <- sort(unique(c(nat_raw$Year, aqu_raw$Year, processing_raw$Year,patrol_raw$Year)))
-# all_week <- sort(unique(c(nat_raw$week, aqu_raw$week, processing_raw$week,patrol_raw$week)))
-# all_quarter <- sort(unique(c(nat_raw$Quarter, aqu_raw$Quarter, processing_raw$Quarter,patrol_raw$Quarter)))
-# all_month <- sort(unique(c(nat_raw$Month, aqu_raw$Month, processing_raw$Month, patrol_raw$Month)))
-# 
-# # Full month names
-# month_labels <- month(all_month, label = TRUE, abbr = FALSE)
-# 
-# # Abbreviated names (Jan, Feb, …)
-# month_labels_abbr <- month(all_month, label = TRUE, abbr = TRUE)
-# 
-# 
-# 
-# all_provinces <- nat_raw %>%
-#   bind_rows(aqu_raw, processing_raw,patrol_raw) %>%
-#   distinct(province_kh, province_en) %>%
-#   filter(!is.na(province_en), !is.na(province_kh)) %>%
-#   arrange(province_kh)
-# # The user sees the English name, the server receives the Khmer name
-# province_choices <- setNames(all_provinces$province_kh, all_provinces$province_en)
-# province_choices <- c("All" = "All", province_choices)
-# 
-# all_areas <- sort(unique(c(nat_raw$area_en, processing_raw$area_en)))
-# processing_sources <- sort(unique(processing_raw$processing_source))
-# 
-# year_choices <- c("All" = "All", as.list(as.character(all_years)))
-# area_choices <- c("All" = "All", as.list(all_areas))
-# source_choices <- c("All" = "All", as.list(processing_sources))
-# week_choices <- c("All" = "All" , as.list(all_week))
-# quarter_choices <- c("All" = "All" , as.list(all_quarter))
-# month_choices <- setNames(as.character(all_month), month(all_month, label = TRUE, abbr = FALSE))
