@@ -25,19 +25,30 @@ server <- function(input, output, session) {
         province_kh != "កំពង់ធំ"
       )
     
-    # --- Province Group filter (All / Marine / Inland) ---
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
-    
+
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
-    # Other optional filters
+    # Province next
     if (!is.null(input$province) && input$province != "All") {
       df <- df %>% dplyr::filter(province_kh == input$province)
     }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
+    
+    
+    
     if (!is.null(input$year) && input$year != "All") {
       df <- df %>% dplyr::filter(year == suppressWarnings(as.integer(input$year)))
     }
@@ -100,25 +111,28 @@ server <- function(input, output, session) {
       ) %>%
       filter(!is.na(date), !is.na(year), !is.na(catch), catch > 0)
     
-    # 1) Area filter (optional control: input$area_nat in {"All","1","2"})
-    # If you don't have an area filter input, keep only marine as before by uncommenting next line:
-    # df <- dplyr::filter(df, area_nat == "2")
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df <- df %>% filter(area_nat == input$area_nat)
-    # }
-    
-    # 2) Province filter  (value is Khmer; "All" keeps all)
-    if (!is.null(input$province) && input$province != "All") {
-      df <- df %>% filter(province_kh == input$province)
-    }
-    
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
-    
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
+    
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
+  
+    
     # 3) Year filter      ("All" keeps all)
     if (!is.null(input$year) && input$year != "All") {
       df <- df %>% filter(year == suppressWarnings(as.numeric(input$year)))
@@ -198,9 +212,27 @@ server <- function(input, output, session) {
         province_kh != "កំពង់ធំ"
       )
     
+    
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df_marine <- df_marine %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
+    
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df_marine <- df_marine %>% dplyr::filter(province_kh == input$province)
+    }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
     # Step 3: Filter by year and determine target_years
     if (!is.null(input$year) && input$year != "All") {
       N <- as.numeric(input$year)
@@ -210,14 +242,7 @@ server <- function(input, output, session) {
       target_years <- sort(unique(df_marine$year))
     }
     
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
     
-    # Step 4: Additional filters
-    if (!is.null(input$province) && input$province != "All") {
-      df_marine <- df_marine %>% filter(province_kh == input$province)
-    }
     
     if (!is.null(input$quarter) && input$quarter != "All") {
       df_marine <- df_marine %>% filter(quarter == input$quarter)
@@ -313,13 +338,27 @@ server <- function(input, output, session) {
         nat_fishcatch_area_nat == "1",
         nat_fishcatch_type_fishing == "3"
       )
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df_rice <- df_rice %>% dplyr::filter(as.character(area_en) == input$area_en)
+    
+    # Group first
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      df_rice <- df_rice %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df_rice <- df_rice %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
-    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df_rice <- df_rice %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df_rice <- df_rice %>% dplyr::filter(province_kh == input$province)
     }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_rice <- df_rice %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
     
     # Step 3: Filter by year and define target_years
     if (!is.null(input$year) && input$year != "All") {
@@ -328,15 +367,6 @@ server <- function(input, output, session) {
       df_rice <- df_rice %>% filter(year %in% target_years)
     } else {
       target_years <- sort(unique(df_rice$year))
-    }
-    
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df_rice <- df_rice %>% filter(area_nat == input$area_nat)
-    # }
-    
-    # Step 4: Additional filters
-    if (!is.null(input$province) && input$province != "All") {
-      df_rice <- df_rice %>% filter(province_kh == input$province)
     }
     
     if (!is.null(input$quarter) && input$quarter != "All") {
@@ -418,13 +448,26 @@ server <- function(input, output, session) {
         province_kh %in% province_order
       )
     
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df_marine <- df_marine %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df_marine <- df_marine %>% dplyr::filter(province_kh == input$province)
     }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
     
     # Step 3: Year filter
     if (!is.null(input$year) && input$year != "All") {
@@ -433,15 +476,6 @@ server <- function(input, output, session) {
       df_marine <- df_marine %>% filter(year %in% target_years)
     } else {
       target_years <- sort(unique(df_marine$year))
-    }
-    
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df_marine <- df_marine %>% filter(area_nat == input$area_nat)
-    # }
-    
-    # Step 4: User-selected province filter
-    if (!is.null(input$province) && input$province != "All") {
-      df_marine <- df_marine %>% filter(province_kh == input$province)
     }
     
     # Step 5: Additional optional filters
@@ -537,18 +571,27 @@ server <- function(input, output, session) {
         province_kh %in% province_order
       )
     
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df_marine <- df_marine %>% filter(area_nat == input$area_nat)
-    # }
-    
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df_marine <- df_marine %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df_marine <- df_marine %>% dplyr::filter(as.character(area_code_nat) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df_marine <- df_marine %>% dplyr::filter(province_kh == input$province)
+    }
+    
+    # Area last (respect current selection)
     if (!is.null(input$area_en) && input$area_en != "All") {
-      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == input$area_en)
+      df_marine <- df_marine %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
     }
     
+
     # ✅ Step 3: Year filter
     if (!is.null(input$year) && input$year != "All") {
       N <- as.numeric(input$year)
@@ -556,11 +599,6 @@ server <- function(input, output, session) {
       df_marine <- df_marine %>% filter(year %in% target_years)
     } else {
       target_years <- sort(unique(df_marine$year))
-    }
-    
-    # ✅ Step 4: Province filter
-    if (!is.null(input$province) && input$province != "All") {
-      df_marine <- df_marine %>% filter(province_kh == input$province)
     }
     
     # ✅ Step 5: Quarter, Month, Week filters
@@ -662,21 +700,27 @@ server <- function(input, output, session) {
       base_data <- base_data %>% filter(year %in% target_years)
     }
     
+   
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        base_data <- base_data %>% dplyr::filter(as.character(area_code_aqu) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      base_data <- base_data %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
-    
-    # ✅ Province filter
+    # Province next
     if (!is.null(input$province) && input$province != "All") {
-      base_data <- base_data %>% filter(province_kh == input$province)
+      base_data <- base_data %>% dplyr::filter(province_kh == input$province)
     }
-    # if (!is.null(input$area_nat) && input$area_nat != "All") {
-    #   df_marine <- df_marine %>% filter(area_nat == input$area_nat)
-    # }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
     
     
     # ✅ Quarter filter
@@ -768,17 +812,24 @@ server <- function(input, output, session) {
       base_data <- base_data %>% filter(year %in% c(N - 1, N))
     }
     
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      base_data <- base_data %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        base_data <- base_data %>% dplyr::filter(as.character(area_code_aqu) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
     
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      base_data <- base_data %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
-    
-    # ✅ Province filter
+    # Province next
     if (!is.null(input$province) && input$province != "All") {
-      base_data <- base_data %>% filter(province_kh == input$province)
+      base_data <- base_data %>% dplyr::filter(province_kh == input$province)
+    }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      base_data <- base_data %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
     }
     
     # ✅ Quarter filter
@@ -846,171 +897,97 @@ server <- function(input, output, session) {
 
   
   ##############################################################################
-  # law_enforcement <- reactive({
-  #   req(input$year, input$province)
-  #   
-  #   # Labels for the 3 enforcement codes we keep
-  #   label_map <- c(
-  #     "2" = "បំផ្លាញចោល (ករណី)",
-  #     "3" = "បញ្ជូនសំណុំរឿងទៅតុលាការ (ករណី)",
-  #     "6" = "ពិន័យអន្តរការណ៍ (ករណី)"
-  #   )
-  #   keep_codes <- names(label_map)
-  #   
-  #   # --- Base df with safe parsing ---
-  #   df <- patrol_raw %>%
-  #     mutate(
-  #       province_kh = as.character(province_kh),
-  #       date = suppressWarnings(as.Date(as.character(date)))
-  #     )
-  #   
-  #   # Year from 'year' / 'Year' / date
-  #   if ("year" %in% names(df)) {
-  #     df <- df %>% mutate(year = suppressWarnings(as.integer(.data$year)))
-  #   } else if ("Year" %in% names(df)) {
-  #     df <- df %>% mutate(year = suppressWarnings(as.integer(.data$Year)))
-  #   } else {
-  #     df <- df %>% mutate(year = suppressWarnings(lubridate::year(date)))
-  #   }
-  #   
-  #   # --- Expand enforcement codes (handles "1 2", "2,3", etc.) ---
-  #   df_codes <- df %>%
-  #     mutate(code_raw = as.character(patrol_enforcement)) %>%
-  #     tidyr::separate_rows(code_raw, sep = "\\D+") %>%  # split on any non-digit
-  #     filter(code_raw != "") %>%
-  #     mutate(code_chr = code_raw) %>%
-  #     filter(code_chr %in% keep_codes) %>%
-  #     mutate(patrol_label_kh = dplyr::recode(code_chr, !!!label_map))
-  #   
-  #   # --- Apply filters ---
-  #   if (input$year != "All") {
-  #     df_codes <- df_codes %>% filter(year == as.integer(input$year))
-  #   }
-  #   if (input$province != "All") {
-  #     df_codes <- df_codes %>% filter(province_kh == input$province)
-  #   }
-  #   
-  #   # --- Summarise counts by province x label ---
-  #   summary_table <- df_codes %>%
-  #     group_by(province_kh, patrol_label_kh) %>%
-  #     summarise(total = dplyr::n(), .groups = "drop") %>%
-  #     tidyr::pivot_wider(
-  #       names_from  = patrol_label_kh,
-  #       values_from = total,
-  #       values_fill = 0L
-  #     )
-  #   
-  #   # ✅ Correct province order: Khmer values (not names) from province_choices
-  #   province_order <- unname(province_choices[province_choices != "All"])
-  #   
-  #   # Add any missing provinces with zeros
-  #   missing_provs <- setdiff(province_order, summary_table$province_kh)
-  #   if (length(missing_provs) > 0) {
-  #     to_add <- tibble::tibble(province_kh = missing_provs)
-  #     for (lbl in unname(label_map)) to_add[[lbl]] <- 0L
-  #     summary_table <- dplyr::bind_rows(summary_table, to_add)
-  #   }
-  #   
-  #   # Ensure all three enforcement columns exist
-  #   for (lbl in unname(label_map)) {
-  #     if (!lbl %in% names(summary_table)) summary_table[[lbl]] <- 0L
-  #   }
-  #   
-  #   # Order by Khmer province list
-  #   summary_table <- summary_table %>%
-  #     arrange(match(province_kh, province_order))
-  #   
-  #   if (nrow(summary_table) == 0) {
-  #     showNotification("No enforcement data available for the selected filters.", type = "error")
-  #     return(NULL)
-  #   }
-  #   
-  #   as.data.frame(summary_table, stringsAsFactors = FALSE, check.names = FALSE)
-  # })
-  
   law_enforcement <- reactive({
-    req(input$year, input$province)
+    req(patrol_raw)  # no need to require inputs; allow "All"
     
-    # Labels for the 3 enforcement codes we care about
-    label_map <- c(
+    # Khmer labels for the 3 enforcement outcomes
+    label_map  <- c(
       "2" = "បំផ្លាញចោល (ករណី)",
       "3" = "បញ្ជូនសំណុំរឿងទៅតុលាការ (ករណី)",
       "6" = "ពិន័យអន្តរការណ៍ (ករណី)"
     )
     keep_codes <- names(label_map)
     
-    # --- Step 1: Prepare and clean data ---
+    # --- Step 1: Prep base frame (no area used here) ---
     df <- patrol_raw %>%
-      mutate(
+      dplyr::mutate(
         province_kh = as.character(province_kh),
-        date = suppressWarnings(as.Date(as.character(date))),
-        year = suppressWarnings(ifelse(!is.na(Year), as.integer(Year), lubridate::year(date))),
-        month = lubridate::month(date),
-        quarter = dplyr::case_when(
-          month %in% 1:3 ~ "Q1",
-          month %in% 4:6 ~ "Q2",
-          month %in% 7:9 ~ "Q3",
+        date   = suppressWarnings(as.Date(as.character(date))),
+        year   = suppressWarnings(dplyr::if_else(!is.na(Year), as.integer(Year), lubridate::year(date))),
+        month  = lubridate::month(date),
+        quarter= dplyr::case_when(
+          month %in% 1:3   ~ "Q1",
+          month %in% 4:6   ~ "Q2",
+          month %in% 7:9   ~ "Q3",
           month %in% 10:12 ~ "Q4",
           TRUE ~ NA_character_
         ),
-        week = paste0("Week", ceiling(lubridate::day(date) / 7))
+        week   = paste0("Week", ceiling(lubridate::day(date) / 7))
       )
     
-    # --- Step 2: Expand enforcement codes ---
+    # --- Step 2: Expand multi-code field and keep only the 3 codes ---
     df_codes <- df %>%
-      mutate(code_raw = as.character(patrol_enforcement)) %>%
-      tidyr::separate_rows(code_raw, sep = "\\D+") %>%
-      filter(code_raw != "") %>%
-      mutate(code_chr = code_raw) %>%
-      filter(code_chr %in% keep_codes) %>%
-      mutate(patrol_label_kh = dplyr::recode(code_chr, !!!label_map))
+      dplyr::mutate(code_raw = as.character(patrol_enforcement)) %>%
+      tidyr::separate_rows(code_raw, sep = "\\D+") %>%     # split on non-digits
+      dplyr::filter(code_raw != "") %>%
+      dplyr::mutate(code_chr = code_raw) %>%
+      dplyr::filter(code_chr %in% keep_codes) %>%
+      dplyr::mutate(patrol_label_kh = dplyr::recode(code_chr, !!!label_map))
     
-    # --- Step 3: Filters ---
-    
-    # ✅ Year filter (this and previous year)
+    # --- Step 3: Apply filters (no area filter here) ---
+    # Year (this and previous year)
     if (!is.null(input$year) && input$year != "All") {
       N <- as.integer(input$year)
-      df_codes <- df_codes %>% filter(year %in% c(N - 1, N))
+      df_codes <- df_codes %>% dplyr::filter(year %in% c(N - 1L, N))
     }
     
+    # Province Group
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df_codes <- df_codes %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df_codes <- df_codes %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
     }
     
-    # ✅ Province filter
+    # Province (Khmer)
     if (!is.null(input$province) && input$province != "All") {
-      df_codes <- df_codes %>% filter(province_kh == input$province)
+      df_codes <- df_codes %>% dplyr::filter(province_kh == input$province)
     }
     
-    # ✅ Quarter filter
+    # Quarter / Month / Week
     if (!is.null(input$quarter) && input$quarter != "All") {
-      df_codes <- df_codes %>% filter(quarter == input$quarter)
+      df_codes <- df_codes %>% dplyr::filter(quarter == input$quarter)
     }
-    
-    # ✅ Month filter
     if (!is.null(input$month) && input$month != "All") {
-      df_codes <- df_codes %>% filter(month == as.integer(input$month))
+      df_codes <- df_codes %>% dplyr::filter(month == as.integer(input$month))
     }
-    
-    # ✅ Week filter
     if (!is.null(input$week) && input$week != "All") {
-      df_codes <- df_codes %>% filter(week == input$week)
+      df_codes <- df_codes %>% dplyr::filter(week == input$week)
     }
     
-    # --- Step 4: Summarize counts ---
+    # --- Step 4: Summarize counts by province × enforcement label ---
     summary_table <- df_codes %>%
-      group_by(province_kh, patrol_label_kh) %>%
-      summarise(total = n(), .groups = "drop") %>%
+      dplyr::group_by(province_kh, patrol_label_kh) %>%
+      dplyr::summarise(total = dplyr::n(), .groups = "drop") %>%
       tidyr::pivot_wider(
-        names_from = patrol_label_kh,
+        names_from  = patrol_label_kh,
         values_from = total,
         values_fill = 0L
       )
     
-    # --- Step 5: Province ordering ---
+    # --- Step 5: Province ordering limited to the selected group ---
+    # start from your global province_choices (values are Khmer names)
     province_order <- unname(province_choices[province_choices != "All"])
     
-    # Add missing provinces with 0s
+    # if a group is selected, restrict the order to that group's provinces only
+    if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+      marine_codes <- c("7","9","18","23")
+      group_set_kh <- province_lookup %>%
+        dplyr::mutate(code_norm = gsub("^0+", "", as.character(province_code)),
+                      Province_Group = dplyr::if_else(code_norm %in% marine_codes, "Marine", "Inland")) %>%
+        dplyr::filter(Province_Group == input$Province_Group) %>%
+        dplyr::pull(province_kh)
+      province_order <- province_order[province_order %in% group_set_kh]
+    }
+    
+    # Add any missing provinces (from the order) with zeros
     missing_provs <- setdiff(province_order, summary_table$province_kh)
     if (length(missing_provs) > 0) {
       to_add <- tibble::tibble(province_kh = missing_provs)
@@ -1020,16 +997,14 @@ server <- function(input, output, session) {
     
     # Ensure all 3 enforcement columns exist
     for (lbl in unname(label_map)) {
-      if (!lbl %in% names(summary_table)) {
-        summary_table[[lbl]] <- 0L
-      }
+      if (!lbl %in% names(summary_table)) summary_table[[lbl]] <- 0L
     }
     
-    # Order by province
+    # Order rows by our province_order
     summary_table <- summary_table %>%
-      arrange(match(province_kh, province_order))
+      dplyr::arrange(match(province_kh, province_order))
     
-    # --- Step 6: Handle empty result ---
+    # --- Step 6: Empty guard ---
     if (nrow(summary_table) == 0) {
       showNotification("No enforcement data available for the selected filters.", type = "error")
       return(NULL)
@@ -1037,6 +1012,117 @@ server <- function(input, output, session) {
     
     as.data.frame(summary_table, stringsAsFactors = FALSE, check.names = FALSE)
   })
+  
+  # 
+  # law_enforcement <- reactive({
+  #   req(input$year, input$province)
+  #   
+  #   # Labels for the 3 enforcement codes we care about
+  #   label_map <- c(
+  #     "2" = "បំផ្លាញចោល (ករណី)",
+  #     "3" = "បញ្ជូនសំណុំរឿងទៅតុលាការ (ករណី)",
+  #     "6" = "ពិន័យអន្តរការណ៍ (ករណី)"
+  #   )
+  #   keep_codes <- names(label_map)
+  #   
+  #   # --- Step 1: Prepare and clean data ---
+  #   df <- patrol_raw %>%
+  #     mutate(
+  #       province_kh = as.character(province_kh),
+  #       date = suppressWarnings(as.Date(as.character(date))),
+  #       year = suppressWarnings(ifelse(!is.na(Year), as.integer(Year), lubridate::year(date))),
+  #       month = lubridate::month(date),
+  #       quarter = dplyr::case_when(
+  #         month %in% 1:3 ~ "Q1",
+  #         month %in% 4:6 ~ "Q2",
+  #         month %in% 7:9 ~ "Q3",
+  #         month %in% 10:12 ~ "Q4",
+  #         TRUE ~ NA_character_
+  #       ),
+  #       week = paste0("Week", ceiling(lubridate::day(date) / 7))
+  #     )
+  #   
+  #   # --- Step 2: Expand enforcement codes ---
+  #   df_codes <- df %>%
+  #     mutate(code_raw = as.character(patrol_enforcement)) %>%
+  #     tidyr::separate_rows(code_raw, sep = "\\D+") %>%
+  #     filter(code_raw != "") %>%
+  #     mutate(code_chr = code_raw) %>%
+  #     filter(code_chr %in% keep_codes) %>%
+  #     mutate(patrol_label_kh = dplyr::recode(code_chr, !!!label_map))
+  #   
+  #   # --- Step 3: Filters ---
+  #   
+  #   # ✅ Year filter (this and previous year)
+  #   if (!is.null(input$year) && input$year != "All") {
+  #     N <- as.integer(input$year)
+  #     df_codes <- df_codes %>% filter(year %in% c(N - 1, N))
+  #   }
+  #   
+  #   if (!is.null(input$Province_Group) && input$Province_Group != "All") {
+  #     df_codes <- df_codes %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+  #   }
+  #   
+  #   # ✅ Province filter
+  #   if (!is.null(input$province) && input$province != "All") {
+  #     df_codes <- df_codes %>% filter(province_kh == input$province)
+  #   }
+  #   
+  #   # ✅ Quarter filter
+  #   if (!is.null(input$quarter) && input$quarter != "All") {
+  #     df_codes <- df_codes %>% filter(quarter == input$quarter)
+  #   }
+  #   
+  #   # ✅ Month filter
+  #   if (!is.null(input$month) && input$month != "All") {
+  #     df_codes <- df_codes %>% filter(month == as.integer(input$month))
+  #   }
+  #   
+  #   # ✅ Week filter
+  #   if (!is.null(input$week) && input$week != "All") {
+  #     df_codes <- df_codes %>% filter(week == input$week)
+  #   }
+  #   
+  #   # --- Step 4: Summarize counts ---
+  #   summary_table <- df_codes %>%
+  #     group_by(province_kh, patrol_label_kh) %>%
+  #     summarise(total = n(), .groups = "drop") %>%
+  #     tidyr::pivot_wider(
+  #       names_from = patrol_label_kh,
+  #       values_from = total,
+  #       values_fill = 0L
+  #     )
+  #   
+  #   # --- Step 5: Province ordering ---
+  #   province_order <- unname(province_choices[province_choices != "All"])
+  #   
+  #   # Add missing provinces with 0s
+  #   missing_provs <- setdiff(province_order, summary_table$province_kh)
+  #   if (length(missing_provs) > 0) {
+  #     to_add <- tibble::tibble(province_kh = missing_provs)
+  #     for (lbl in unname(label_map)) to_add[[lbl]] <- 0L
+  #     summary_table <- dplyr::bind_rows(summary_table, to_add)
+  #   }
+  #   
+  #   # Ensure all 3 enforcement columns exist
+  #   for (lbl in unname(label_map)) {
+  #     if (!lbl %in% names(summary_table)) {
+  #       summary_table[[lbl]] <- 0L
+  #     }
+  #   }
+  #   
+  #   # Order by province
+  #   summary_table <- summary_table %>%
+  #     arrange(match(province_kh, province_order))
+  #   
+  #   # --- Step 6: Handle empty result ---
+  #   if (nrow(summary_table) == 0) {
+  #     showNotification("No enforcement data available for the selected filters.", type = "error")
+  #     return(NULL)
+  #   }
+  #   
+  #   as.data.frame(summary_table, stringsAsFactors = FALSE, check.names = FALSE)
+  # })
   
   
 #################################################################################
@@ -1116,20 +1202,26 @@ server <- function(input, output, session) {
       df <- df %>% filter(year %in% c(N - 1, N))
     }
     
-    if (!is.null(input$area_en) && input$area_en != "All") {
-      df <- df %>% dplyr::filter(as.character(area_en) == input$area_en)
-    }
-    
-    # Province
-    if (!is.null(input$province) && input$province != "All") {
-      df <- df %>% filter(province_kh == input$province)
-    } else {
-      df <- df %>% filter(province_kh %in% province_order)
-    }
-    
+    # Group first
     if (!is.null(input$Province_Group) && input$Province_Group != "All") {
-      df <- df %>% dplyr::filter(as.character(Province_Group) == input$Province_Group)
+      df <- df %>% dplyr::filter(as.character(Province_Group) == as.character(input$Province_Group))
+      if (input$Province_Group == "Inland") {
+        # Inland group MUST NOT show marine area rows
+        df <- df %>% dplyr::filter(as.character(area_code_aqu) %in% c("1","01") | grepl("fresh|inland", tolower(as.character(area_en))))
+      }
+      # For Marine group we do NOT restrict area (both inland & marine allowed)
     }
+    
+    # Province next
+    if (!is.null(input$province) && input$province != "All") {
+      df <- df %>% dplyr::filter(province_kh == input$province)
+    }
+    
+    # Area last (respect current selection)
+    if (!is.null(input$area_en) && input$area_en != "All") {
+      df <- df %>% dplyr::filter(as.character(area_en) == as.character(input$area_en))
+    }
+    
     
     # Quarter
     if (!is.null(input$quarter) && input$quarter != "All") {
@@ -1396,8 +1488,35 @@ server <- function(input, output, session) {
     })
   })
   
+  # When Province Group changes, update Province and Area lists accordingly
+  observeEvent(input$Province_Group, {
+    grp <- input$Province_Group
+    
+    # Province list
+    updateSelectInput(session, "province",
+                      choices  = get_province_choices_for_group(grp),
+                      selected = "All"
+    )
+    
+    # Area list: Marine -> both areas; Inland -> only inland/fresh
+    new_area_choices <- get_area_choices_for_group(grp, area_choices = area_choices)
+    sel <- isolate(input$area_en)
+    if (is.null(sel) || !(sel %in% unname(new_area_choices))) sel <- "All"
+    updateSelectInput(session, "area_en",
+                      choices  = new_area_choices,
+                      selected = sel
+    )
+  })
   
 
+  
+  # Optional: ensure Province choices match initial Group at app start
+  observeEvent(TRUE, {
+    updateSelectInput(session, "province",
+                      choices = get_province_choices_for_group(isolate(input$Province_Group %||% "All")),
+                      selected = "All")
+  }, once = TRUE)
+  
   
   # 2. Event handler for the "OK" button inside the modal
   observeEvent(input$confirmSelection, {
@@ -1444,6 +1563,55 @@ server <- function(input, output, session) {
     }
   })
   
+  # Avoid loops when quarter updates month and month updates quarter
+  qm_lock <- reactiveVal(FALSE)
+  
+  # Quarter -> Month (narrow month list to the selected quarter)
+  observeEvent(input$quarter, ignoreInit = TRUE, {
+    if (qm_lock()) return()
+    qm_lock(TRUE)
+    
+    new_month_choices <- get_month_choices_for_quarter(input$quarter, month_choices)
+    current_month <- isolate(input$month)
+    selected_month <- if (!is.null(current_month) && current_month %in% unname(new_month_choices)) {
+      current_month
+    } else {
+      "All"
+    }
+    
+    updateSelectInput(session, "month",
+                      choices  = new_month_choices,
+                      selected = selected_month
+    )
+    
+    qm_lock(FALSE)
+  })
+  
+  # Month -> Quarter (auto-set quarter; keep month list consistent)
+  observeEvent(input$month, ignoreInit = TRUE, {
+    if (qm_lock()) return()
+    q <- month_to_quarter(input$month)
+    if (is.null(q)) return()
+    
+    qm_lock(TRUE)
+    
+    updateSelectInput(session, "quarter", selected = q)
+    
+    # ensure month choices show only months in that quarter
+    new_month_choices <- get_month_choices_for_quarter(q, month_choices)
+    if (!(input$month %in% unname(new_month_choices))) {
+      updateSelectInput(session, "month",
+                        choices  = new_month_choices,
+                        selected = "All"
+      )
+    } else {
+      updateSelectInput(session, "month",
+                        choices  = new_month_choices
+      )
+    }
+    
+    qm_lock(FALSE)
+  })
   
   
   

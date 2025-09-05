@@ -53,6 +53,59 @@ province_lookup <- choices %>%
          province_kh = label_khmer,
          province_en = label_english)
 
+marine_codes <- c("7","9","18","23")  # Kampot, Koh Kong, Preah Sihanouk, Kep
+
+# Province choices by group (English shown, Khmer value)
+get_province_choices_for_group <- function(group = "All") {
+  pl <- province_lookup %>%
+    dplyr::mutate(code_norm = gsub("^0+", "", as.character(province_code)),
+                  Province_Group = dplyr::if_else(code_norm %in% marine_codes, "Marine", "Inland"))
+  if (!is.null(group) && group != "All") pl <- pl %>% dplyr::filter(Province_Group == group)
+  c("All" = "All", setNames(pl$province_kh, pl$province_en))
+}
+
+# Area choices by group (values are your area labels, e.g. "Marine Capture", "Freshwater Capture")
+get_area_choices_for_group <- function(group = "All", area_choices) {
+  vals <- unname(area_choices); labs <- names(area_choices)
+  keep <- rep(TRUE, length(vals))
+  lv <- tolower(trimws(vals))
+  if (!is.null(group) && group == "Inland") {
+    keep <- !grepl("marine", lv)  # Inland group must NOT offer Marine
+  }
+  # always keep "All"
+  keep <- keep | vals == "All" | labs == "All"
+  setNames(vals[keep], labs[keep])
+}
+
+
+# Map quarter -> month values (your month select uses "1","2",... as values)
+quarter_to_months <- list(
+  Q1 = c("1","2","3"),
+  Q2 = c("4","5","6"),
+  Q3 = c("7","8","9"),
+  Q4 = c("10","11","12")
+)
+
+# Limit month choices to a quarter
+get_month_choices_for_quarter <- function(q, month_choices) {
+  if (is.null(q) || q == "All") return(month_choices)
+  vals <- unname(month_choices); labs <- names(month_choices)
+  keep <- (vals == "All") | (vals %in% quarter_to_months[[q]])
+  setNames(vals[keep], labs[keep])
+}
+
+# Month -> Quarter
+month_to_quarter <- function(m) {
+  if (is.null(m) || m == "All") return(NULL)
+  m <- suppressWarnings(as.integer(m))
+  if      (m %in% 1:3)    "Q1"
+  else if (m %in% 4:6)    "Q2"
+  else if (m %in% 7:9)    "Q3"
+  else if (m %in% 10:12)  "Q4"
+  else NULL
+}
+
+
 fish_label_lookup <- choices %>%
   filter(list_name == "type") %>%
   select(name, label_khmer, label_english) %>%

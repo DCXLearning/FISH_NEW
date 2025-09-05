@@ -200,24 +200,32 @@ ui <- fluidPage(
   ),
 
   # --- Collapsible Sidebar with Filters and Download Buttons ---
-  div(id = "sidebarPanel", class = "sidebar",
-      actionButton("closeSidebarBtn", "", icon = icon("times")),
-      h3("Filters"),
-      selectInput("Province_Group", "Select Province Group", choices = province_group_choices), 
-      selectInput("year", "Select Year", choices = year_choices), # Replace with your year_choices
-      selectInput("quarter", "Select Quarter", choices = quarter_choices),
-      selectInput("month", "Select Month", choices = month_choices), 
-      selectInput("province", "Select Province", choices = province_choices),
-      selectInput("area_en", "Select Area", choices = area_choices), 
-      
-      checkboxInput("show_all", "Show All Rows", value = FALSE),
-
-      tags$hr(),
-      h4("Download Reports"),
-      actionButton("updateFileButton", "Download Combined Excel", class = "btn-success"),
-      br(), br(),
-
+  div(
+    id = "sidebarPanel", class = "sidebar",
+    actionButton("closeSidebarBtn", "", icon = icon("times")),
+    h3("Filters"),
+    
+    selectInput("Province_Group", "Select Province Group",
+                choices = province_group_choices, selected = "All"),
+    
+    selectInput("year",    "Select Year",    choices = year_choices),
+    selectInput("quarter", "Select Quarter", choices = quarter_choices),
+    selectInput("month",   "Select Month",   choices = month_choices),
+    
+    # IMPORTANT: province choices come from the helper (start with All)
+    selectInput("province", "Select Province",
+                choices = get_province_choices_for_group("All"), selected = "All"),
+    
+    selectInput("area_en", "Select Area", choices = area_choices),
+    
+    checkboxInput("show_all", "Show All Rows", value = FALSE),
+    
+    tags$hr(),
+    h4("Download Reports"),
+    actionButton("updateFileButton", "Download Combined Excel", class = "btn-success"),
+    br(), br()
   ),
+  
 
   # --- Main Content Area ---
   div(
